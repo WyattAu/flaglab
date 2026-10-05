@@ -18,13 +18,16 @@ use crate::audit::{FlagRecord, FlaglabError};
 /// enabled(` would cost every consumer a dependency. `regex` is available
 /// through the estate's `validkit/regex` feature when a kit needs more.
 const FLAG_PATTERNS: &[(&str, &str)] = &[
-    ("flag_kit::FlagName::new(\"", "flag-kit"),
-    ("FlagName::new(\"", "flag-kit"),
-    ("state.flag_evaluator", "evaluator"),
-    ("flags.is_enabled(\"", "generic"),
-    ("feature_flag(\"", "generic"),
-    ("is_feature_enabled(\"", "generic"),
+    ("flag_kit::FlagName::new(", "flag-kit"),
+    ("FlagName::new(", "flag-kit"),
+    ("flags.is_enabled(", "generic"),
+    ("feature_flag(", "generic"),
+    ("is_feature_enabled(", "generic"),
 ];
+
+/// Directories never scanned: generated or vendored trees full of copies
+/// of the source we actually care about.
+const SKIP_DIRS: &[&str] = &["target", "node_modules", "dist", "build", "vendor", "coverage"];
 
 /// One flag found in a repository.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -144,6 +147,9 @@ impl Discovery {
             if name.starts_with('.') && !self.include_hidden {
                 continue;
             }
+            if SKIP_DIRS.contains(&name.as_str()) {
+                continue;
+            }
             if path.is_dir() {
                 self.walk(repo, &path, depth + 1, found, files)?;
                 continue;
@@ -217,15 +223,21 @@ impl Discovery {
                 age: Duration::ZERO,
                 last_changed: None,
                 last_evaluated: None,
+                // A code scan sees references, not evaluations.
+                evaluation_tracked: false,
                 code_refs: d.references.clone(),
             })
             .collect()
     }
 }
 
+/// Extracts the string literal that must begin `s`.
+///
+/// The patterns end at the opening parenthesis, so the opening quote is the
+/// very next byte: skipping to the first quote anywhere would find the
+/// *closing* quote and read past the end of the name.
 fn extract_quoted(s: &str) -> Option<String> {
-    let start = s.find('"')?;
-    let rest = &s[start + 1..];
+    let rest = s.strip_prefix('"')?;
     let end = rest.find('"')?;
     Some(rest[..end].to_string())
 }
@@ -257,8 +269,16 @@ mod tests {
     use super::*;
     use std::fs;
 
+    /// Unique per call: tests share one process, so a PID-keyed directory
+    /// would let parallel tests delete each other's fixtures.
     fn tmp() -> PathBuf {
-        let d = std::env::temp_dir().join(format!("flaglab-disc-{}", std::process::id()));
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static N: AtomicUsize = AtomicUsize::new(0);
+        let n = N.fetch_add(1, Ordering::Relaxed);
+        let d = std::env::temp_dir().join(format!(
+            "flaglab-disc-{}-{n}",
+            std::process::id()
+        ));
         let _ = fs::remove_dir_all(&d);
         fs::create_dir_all(&d).unwrap();
         d

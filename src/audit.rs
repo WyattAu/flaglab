@@ -61,6 +61,11 @@ pub struct FlagRecord {
     pub last_changed: Option<Duration>,
     /// Age since the last evaluation, when ever evaluated.
     pub last_evaluated: Option<Duration>,
+    /// Whether `last_evaluated` is authoritative for this record.
+    ///
+    /// False for code-discovered flags: a static scan sees references, not
+    /// evaluations, so absence of evidence is not evidence of disuse.
+    pub evaluation_tracked: bool,
     /// Files and line numbers referencing this flag, when known.
     pub code_refs: Vec<String>,
 }
@@ -78,12 +83,13 @@ impl FlagRecord {
     fn facts(&self) -> FlagFacts {
         FlagFacts {
             kind: self.flag_kind(),
-            age_days: self.age.as_secs() / 86_400,
+            age_days: (self.age.as_secs() / 86_400) as u32,
             last_changed_age_days: self.last_changed.map(|d| (d.as_secs() / 86_400) as u32),
             percentage: self.percentage,
             last_evaluated_age_days: self
                 .last_evaluated
                 .map(|d| (d.as_secs() / 86_400) as u32),
+            evaluation_tracked: self.evaluation_tracked,
         }
     }
 }
@@ -156,10 +162,19 @@ impl StalenessReport {
 }
 
 /// A run over one or more flag systems.
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Lab {
     policy: FlagPolicy,
     sources: Vec<Box<dyn crate::source::FlagSource>>,
+}
+
+impl fmt::Debug for Lab {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Lab")
+            .field("policy", &self.policy)
+            .field("sources", &self.sources.len())
+            .finish()
+    }
 }
 
 impl Lab {
@@ -204,7 +219,9 @@ impl Lab {
     pub fn audit(&self) -> Result<Vec<Verdicted>, FlaglabError> {
         let mut out = Vec::new();
         for source in &self.sources {
-            let records = source.load().map_err(FlaglabError::Source)?;
+            let records = source
+                .load()
+                .map_err(|e| FlaglabError::Source(e.to_string()))?;
             for record in records {
                 let c = self.policy.classify(record.facts());
                 out.push(Verdicted {
@@ -247,6 +264,7 @@ mod tests {
             age: Duration::from_secs(age_days * 86_400),
             last_changed: Some(Duration::from_secs(age_days * 86_400)),
             last_evaluated: Some(Duration::from_secs(86_400)),
+            evaluation_tracked: true,
             code_refs: Vec::new(),
         }
     }

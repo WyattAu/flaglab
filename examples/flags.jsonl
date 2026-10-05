@@ -1,0 +1,5 @@
+# Example export. Ages are day counts, which is what FlagPolicy consumes.
+{"repo":"civitforge","name":"migration_api_v1","kind":"release","owner":"core","ticket":"CF-412","enabled":true,"percentage":100,"age_days":47,"last_changed_age_days":47,"last_evaluated_age_days":0}
+{"repo":"civitforge","name":"throttle_v2","kind":"release","owner":"core","ticket":"CF-418","enabled":true,"percentage":25,"age_days":9,"last_changed_age_days":9,"last_evaluated_age_days":0}
+{"repo":"civitforge","name":"admin_kill_switch","kind":"permission","owner":"sre","enabled":true,"percentage":0,"age_days":400,"last_changed_age_days":400,"last_evaluated_age_days":2}
+{"repo":"flaglab","name":"pretty_reports","kind":"experiment","owner":"tools","ticket":"FL-7","enabled":true,"percentage":50,"age_days":38,"last_changed_age_days":38,"last_evaluated_age_days":1}

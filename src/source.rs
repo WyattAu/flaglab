@@ -60,6 +60,7 @@ impl JsonlSource {
                 "age_days": r.age.as_secs() / 86_400,
                 "last_changed_age_days": r.last_changed.map(|d| d.as_secs() / 86_400),
                 "last_evaluated_age_days": r.last_evaluated.map(|d| d.as_secs() / 86_400),
+                "evaluation_tracked": r.evaluation_tracked,
                 "code_refs": r.code_refs,
             });
             body.push_str(&line.to_string());
@@ -94,8 +95,16 @@ struct Record {
     last_changed_age_days: Option<i64>,
     #[serde(default)]
     last_evaluated_age_days: Option<i64>,
+    /// Absent in older exports, where every record came from a flag system
+    /// and therefore had telemetry.
+    #[serde(default = "default_tracked")]
+    evaluation_tracked: bool,
     #[serde(default)]
     code_refs: Vec<String>,
+}
+
+fn default_tracked() -> bool {
+    true
 }
 
 impl FlagSource for JsonlSource {
@@ -126,9 +135,10 @@ impl FlagSource for JsonlSource {
                 last_changed: r
                     .last_changed_age_days
                     .map(|d| std::time::Duration::from_secs((d.max(0) as u64) * 86_400)),
-                last_evaluated: r.last_evaluated_age_days.map(|d| {
-                    std::time::Duration::from_secs((d.max(0) as u64) * 86_400)
-                }),
+                last_evaluated: r
+                    .last_evaluated_age_days
+                    .map(|d| std::time::Duration::from_secs((d.max(0) as u64) * 86_400)),
+                evaluation_tracked: r.evaluation_tracked,
                 code_refs: r.code_refs,
             });
         }
@@ -175,7 +185,10 @@ mod tests {
 
     #[test]
     fn malformed_line_names_the_line() {
-        let src = JsonlSource::new("feed", "{\"repo\":\"a\"}\nnot json");
+        let src = JsonlSource::new(
+            "feed",
+            "{\"repo\":\"a\",\"name\":\"ok\"}\nthis is not json",
+        );
         let err = src.load().unwrap_err();
         let msg = err.to_string();
         assert!(msg.contains("feed:2"), "error must locate the line: {msg}");

@@ -148,6 +148,7 @@ mod tests {
                 age: Duration::from_secs(age_days * 86_400),
                 last_changed: Some(Duration::from_secs(age_days * 86_400)),
                 last_evaluated: Some(Duration::from_secs(86_400)),
+                evaluation_tracked: true,
                 code_refs: vec!["src/main.rs:42".into()],
             },
             staleness,
@@ -186,7 +187,8 @@ mod tests {
 
     #[test]
     fn json_carries_counts_and_candidates() {
-        let json: serde_json::Value = serde_json::from_str(&render_json(&report())).unwrap();
+        let built = report();
+        let json: serde_json::Value = serde_json::from_str(&render_json(&built)).unwrap();
         assert_eq!(json["total"], 3);
         assert_eq!(json["removal_candidates"].as_array().unwrap().len(), 1);
         assert_eq!(json["aging"].as_array().unwrap().len(), 1);
@@ -196,7 +198,7 @@ mod tests {
 
     #[test]
     fn removal_ordering_is_preserved_in_output() {
-        let report = StalenessReport {
+        let ordered = StalenessReport {
             source: "s".into(),
             verdicts: vec![
                 v("older_single", FlagKind::Release, 400, Staleness::Stale, &["aged_past_deadline"]),
@@ -209,7 +211,7 @@ mod tests {
                 ),
             ],
         };
-        let json: serde_json::Value = serde_json::from_str(&render_json(&report())).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&render_json(&ordered)).unwrap();
         let first = &json["removal_candidates"][0]["name"];
         assert_eq!(first, "younger_double");
     }
