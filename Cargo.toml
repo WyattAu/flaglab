@@ -1,0 +1,20 @@
+[package]
+name = "flaglab"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Audit feature flags across repositories and emit reviewable removal candidates"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/WyattAu/flaglab"
+
+[dependencies]
+flag-kit = { version = "0.3", features = ["chrono"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "deny"

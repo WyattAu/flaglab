@@ -1,0 +1,10 @@
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  conformance:
+    uses: WyattAu/kit-conformance/.github/workflows/conformance.yml@main
+    with:
+      crate-path: .
+      msrv: "1.85"
