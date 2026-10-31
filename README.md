@@ -36,7 +36,7 @@ is worse than no automation: it removes working paths and blames the flag.
 
 ## One policy, two consumers
 
-The verdict comes from `flag_kit::FlagPolicy` — the same code
+The verdict comes from `flag_kit::FlagPolicy`; the same code
 CivitForge's `GET /api/v1/admin/feature-flags/stale` uses. A disagreement
 between CI and production review is impossible by construction rather than
 prevented by convention.
@@ -47,13 +47,13 @@ and per-kind lifetimes from [stale-flag-detector](https://github.com/kromiii/sta
 | Signal | Meaning |
 | --- | --- |
 | `aged_past_deadline` | Older than the deadline for its kind (release 30d, experiment 40d, operational 90d) |
-| `fully_rolled_out` | `percentage == 100` while the flag still exists — the gated branch is now unconditional dead code |
+| `fully_rolled_out` | `percentage == 100` while the flag still exists; the gated branch is now unconditional dead code |
 | `never_evaluated` | No recorded evaluation since creation |
 
 `permission` kind flags are exempt: kill switches and authorization gates
 are intentionally permanent.
 
-Verdicts are `fresh`, `aging` (past half the deadline — review before it
+Verdicts are `fresh`, `aging` (past half the deadline; review before it
 becomes a candidate), `stale`, `permanent`.
 
 ## Install
@@ -90,7 +90,7 @@ CivitForge. It uses:
 
 | Kit | Use |
 | --- | --- |
-| `flag-kit` | `FlagPolicy`, `FlagKind`, `Staleness`, `StaleSignal` — the verdict |
+| `flag-kit` | `FlagPolicy`, `FlagKind`, `Staleness`, `StaleSignal`; the verdict |
 | `serde`/`serde_json` | JSONL ingest and CI output |
 
 Every kit bug found here is a bug that would have reached every other
